@@ -12,10 +12,9 @@ export  function startServer(port: number, spotify: SpotifyController) {
         spotify.setAuthorizationCode(code as string);
         spotify.requestAccessToken().then(
             () => {
-               spotify.getDeezerFlow("1314586844")
+               spotify.getDeezerFlow(spotify.deezerId)
             }
         )
-
         res.send('Authorization code received successfully');
     });
 

@@ -16,14 +16,16 @@ export class SpotifyController {
     queue: string[] = [];
     deamon_kill: boolean = false;
     is_playing: boolean = false;
+    deezerId: string;
 
-    constructor(clientId: string, clientSecret: string, redirectUri: string = 'http://localhost:3000/spotify/callback') {
+    constructor(clientId: string, clientSecret: string, deezerId : string, redirectUri: string = 'http://localhost:3000/spotify/callback') {
         this.clientId = clientId;
         this.clientSecret = clientSecret;
         this.token = null;
         this.redirectUri = redirectUri;
         this.authorizationCode = null;
         this.queue = [];
+        this.deezerId = deezerId;
         this.fetchTokenSync();
         this.daemon()
         console.log(this.getAuthorizationUrl(['user-read-playback-state', 'user-modify-playback-state'], 'state'))
@@ -171,7 +173,6 @@ export class SpotifyController {
                 const trackUri = tracks[0].uri;
                 this.queue.push(trackUri);
                 console.log(`Track added to the local queue: ${tracks[0].name} by ${tracks[0].artists[0].name}`);
-                console.log(this.queue)
             })
             .catch(error => {
                 console.error('Error adding track to the local queue:', error);
@@ -187,7 +188,6 @@ export class SpotifyController {
             }
         })
         const data = await res.json();
-        console.log(data)
         data.data.forEach((track: any) => {
                 this.searchAndAddToQueue(`${track.artist.name} ${track.title}`)
                 console.log('added ' + track.title)
@@ -197,9 +197,11 @@ export class SpotifyController {
 
 
     public async daemon() {
+        let coldStart = true;
         console.log('Daemon started.');
         while (true) {
             if (this.queue.length > 0) {
+                coldStart = false;
                 console.log('Playing from the queue.');
                 const trackUri = this.queue.shift();
                 const playUrl = 'https://api.spotify.com/v1/me/player/play';
@@ -222,6 +224,11 @@ export class SpotifyController {
                     await this.waitForTrackToFinish();
                 } catch (error) {
                     console.error('Error playing track from the queue:', error);
+                }
+            } else {
+                if (!coldStart) {
+                    console.log('Queue is empty. Fetching Deezer flow.');
+                    this.getDeezerFlow(this.deezerId);
                 }
             }
             await this.delay(1000);
